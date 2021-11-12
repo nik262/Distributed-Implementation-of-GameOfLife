@@ -11,6 +11,32 @@ import (
 	"net/rpc"
 )
 
+var ProcessTurns = "GameOfLife.Process"
+
+type Response struct {
+	Message string
+}
+
+type Request struct {
+	Message string
+}
+
+// exported
+type GameOfLife struct {}
+
+func handleError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+func (s* GameOfLife) Process (world [][]byte, p Params, c controllerChannels, req Request, res Response) (err error) {
+	// process turns of GOL
+	for turn < p.Turns {
+		initialWorld = calculateNextStep(initialWorld, p)
+		turn++
+	}
+}s
+
 /* Below needs to be the GOL implementation */
 func ReverseString(s string, i int) string {
 	time.Sleep(time.Duration(rand.Intn(i)) * time.Second)
@@ -21,24 +47,12 @@ func ReverseString(s string, i int) string {
 	return string(runes)
 }
 
-type SecretStringOperations struct{}
-
-func (s *SecretStringOperations) Reverse(req stubs.Request, res *stubs.Response) (err error) {
-	if req.Message == "" {
-		err = errors.New("A message must be specified")
-		return
-	}
-
-	fmt.Println("Got Message: " + req.Message)
-	res.Message = ReverseString(req.Message, 10)
-	return
-}
 
 func main() {
 	pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
-	rpc.Register(&SecretStringOperations{})
+	rpc.Register(&GameOfLife{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
