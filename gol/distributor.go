@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net/rpc"
 	"strconv"
+	"uk.ac.bris.cs/gameoflife/stubs"
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
@@ -52,12 +53,13 @@ func getallalivecells(world [][]byte, p Params) []util.Cell {
 	return alivecells
 }
 
-func makeCall(client rpc.Client, initialworld [][]byte, p Params) Response {
+func makeCall(client rpc.Client, initialworld [][]byte, p Params) *stubs.Response {
 
-	request := Request{World: initialworld, P: p}
-	response := new(Response)
-	client.Call(ProcessTurns, request, response)
-	return *response
+	params := stubs.StubP{Turns: p.Turns, Threads: p.Threads, ImageWidth: p.ImageWidth, ImageHeight: p.ImageHeight}
+	request := stubs.Request{World: initialworld, P: params}
+	response := new(stubs.Response)
+	client.Call(stubs.ProcessTurns, request, response)
+	return response
 
 }
 
@@ -86,7 +88,7 @@ func distributor(p Params, c distributorChannels) {
 	turn := 0
 	responseval := makeCall(*client, initialworld, p)
 	turn = responseval.Turn
-	initialworld = responseval.world
+	initialworld = responseval.World
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 

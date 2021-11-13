@@ -1,17 +1,17 @@
-package gol
+package main
 
 import (
 	"flag"
 	"math/rand"
 	"net"
-	"time"
-	//"secretstrings/stubs"
 	"net/rpc"
+	"time"
+	"uk.ac.bris.cs/gameoflife/stubs"
 )
 
 /* Below needs to be the GOL implementation */
 
-func calcAliveNeighbourValues(world [][]byte, p Params, r int, c int) int {
+func calcAliveNeighbourValues(world [][]byte, p stubs.StubP, r int, c int) int {
 
 	alivemeter := 0
 
@@ -32,7 +32,7 @@ func calcAliveNeighbourValues(world [][]byte, p Params, r int, c int) int {
 	return alivemeter
 }
 
-func calculatenextstep(world [][]byte, p Params) [][]byte {
+func calculatenextstep(world [][]byte, p stubs.StubP) [][]byte {
 
 	//replicating world so we can work on testerworld without disturbing world
 	testerworld := make([][]byte, len(world))
@@ -69,7 +69,7 @@ func handleError(err error) {
 	}
 }
 
-func (s *GameOfLife) Process(req Request, res *Response) (err error) {
+func (s *GameOfLife) Process(req stubs.Request, res *stubs.Response) (err error) {
 
 	// process turns of GOL
 	turn := 0
@@ -77,7 +77,7 @@ func (s *GameOfLife) Process(req Request, res *Response) (err error) {
 		req.World = calculatenextstep(req.World, req.P)
 		turn++
 	}
-	res.world = req.World
+	res.World = req.World
 	res.Turn = turn
 
 	return
