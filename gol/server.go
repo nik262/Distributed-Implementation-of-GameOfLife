@@ -1,9 +1,7 @@
 package gol
 
 import (
-	"errors"
 	"flag"
-	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -11,42 +9,79 @@ import (
 	"net/rpc"
 )
 
-var ProcessTurns = "GameOfLife.Process"
+/* Below needs to be the GOL implementation */
 
-type Response struct {
-	Message string
+func calcAliveNeighbourValues(world [][]byte, p Params, r int, c int) int {
+
+	alivemeter := 0
+
+	//inner for loop calculates the state of the neighbours
+	for i := r - 1; i <= r+1; i++ {
+		for j := c - 1; j <= c+1; j++ {
+
+			if i == r && j == c {
+				continue
+			}
+			if world[((i + p.ImageWidth) % p.ImageWidth)][(j+p.ImageHeight)%p.ImageHeight] == 255 {
+				alivemeter++
+			}
+
+		}
+	}
+
+	return alivemeter
 }
 
-type Request struct {
-	Message string
+func calculatenextstep(world [][]byte, p Params) [][]byte {
+
+	//replicating world so we can work on testerworld without disturbing world
+	testerworld := make([][]byte, len(world))
+	for i := range world {
+		testerworld[i] = make([]byte, len(world[i]))
+		copy(testerworld[i], world[i])
+	}
+
+	for r := 0; r < p.ImageHeight; r++ {
+		for c := 0; c < p.ImageWidth; c++ {
+
+			numberofaliveneighbours := calcAliveNeighbourValues(testerworld, p, r, c)
+
+			//changing initial world with GOL conditions
+			if numberofaliveneighbours < 2 || numberofaliveneighbours > 3 {
+				world[r][c] = 0
+			}
+			if numberofaliveneighbours == 3 {
+				world[r][c] = 255
+			}
+
+		}
+	}
+
+	return world
 }
 
 // exported
-type GameOfLife struct {}
+type GameOfLife struct{}
 
 func handleError(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
-func (s* GameOfLife) Process (world [][]byte, p Params, c controllerChannels, req Request, res Response) (err error) {
+
+func (s *GameOfLife) Process(req Request, res *Response) (err error) {
+
 	// process turns of GOL
-	for turn < p.Turns {
-		initialWorld = calculateNextStep(initialWorld, p)
+	turn := 0
+	for turn < req.P.Turns {
+		req.World = calculatenextstep(req.World, req.P)
 		turn++
 	}
-}s
+	res.world = req.World
+	res.Turn = turn
 
-/* Below needs to be the GOL implementation */
-func ReverseString(s string, i int) string {
-	time.Sleep(time.Duration(rand.Intn(i)) * time.Second)
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
+	return
 }
-
 
 func main() {
 	pAddr := flag.String("port", "8030", "Port to listen on")

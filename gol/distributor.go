@@ -1,6 +1,8 @@
 package gol
 
 import (
+	"flag"
+	"net/rpc"
 	"strconv"
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -15,7 +17,7 @@ type distributorChannels struct {
 }
 
 //making initial world
-func makeWorld(height int, width int, input <-chan uint8, e chan<- Event) [][]byte {
+func makeWorld(height int, width int, input <-chan uint8) [][]byte {
 
 	//making empty world
 	world := make([][]byte, height)
@@ -35,28 +37,6 @@ func makeWorld(height int, width int, input <-chan uint8, e chan<- Event) [][]by
 
 	return world
 }
-
-func calcAliveNeighbourValues(world [][]byte, p Params, r int, c int) int {
-
-	alivemeter := 0
-
-	//inner for loop calculates the state of the neighbours
-	for i := r - 1; i <= r+1; i++ {
-		for j := c - 1; j <= c+1; j++ {
-
-			if i == r && j == c {
-				continue
-			}
-			if world[((i + p.ImageWidth) % p.ImageWidth)][(j+p.ImageHeight)%p.ImageHeight] == 255 {
-				alivemeter++
-			}
-
-		}
-	}
-
-	return alivemeter
-}
-
 func getallalivecells(world [][]byte, p Params) []util.Cell {
 
 	var alivecells []util.Cell
@@ -72,32 +52,13 @@ func getallalivecells(world [][]byte, p Params) []util.Cell {
 	return alivecells
 }
 
-func calculatenextstep(world [][]byte, p Params) [][]byte {
+func makeCall(client rpc.Client, initialworld [][]byte, p Params) Response {
 
-	//replicating world so we can work on testerworld without disturbing world
-	testerworld := make([][]byte, len(world))
-	for i := range world {
-		testerworld[i] = make([]byte, len(world[i]))
-		copy(testerworld[i], world[i])
-	}
+	request := Request{World: initialworld, P: p}
+	response := new(Response)
+	client.Call(ProcessTurns, request, response)
+	return *response
 
-	for r := 0; r < p.ImageHeight; r++ {
-		for c := 0; c < p.ImageWidth; c++ {
-
-			numberofaliveneighbours := calcAliveNeighbourValues(testerworld, p, r, c)
-
-			//changing initial world with GOL conditions
-			if numberofaliveneighbours < 2 || numberofaliveneighbours > 3 {
-				world[r][c] = 0
-			}
-			if numberofaliveneighbours == 3 {
-				world[r][c] = 255
-			}
-
-		}
-	}
-
-	return world
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
@@ -110,18 +71,22 @@ func distributor(p Params, c distributorChannels) {
 	c.ioFilename <- filename
 
 	//make initial world
-	initialworld := makeWorld(p.ImageHeight, p.ImageWidth, c.ioInput, c.events)
+	initialworld := makeWorld(p.ImageHeight, p.ImageWidth, c.ioInput)
 	//calculates next step
 
 	// TODO: Execute all turns of the Game of Life.
+
+	//client side boiler code copied from secretstrings
+	server := flag.String("server", "3.91.157.15:8030", "IP:port string to connect to as server")
+	flag.Parse()
+	client, _ := rpc.Dial("tcp", *server)
+	defer client.Close()
+
+	//calls client and assigns the recieved world to initialworld
 	turn := 0
-
-	for turn < p.Turns {
-
-		initialworld = calculatenextstep(initialworld, p)
-		turn++
-
-	}
+	responseval := makeCall(*client, initialworld, p)
+	turn = responseval.Turn
+	initialworld = responseval.world
 
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 
