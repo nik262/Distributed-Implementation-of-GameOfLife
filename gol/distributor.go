@@ -79,9 +79,9 @@ func distributor(p Params, c distributorChannels) {
 	// TODO: Execute all turns of the Game of Life.
 
 	//client side boiler code copied from secretstrings
-	server := flag.String("server", "3.91.157.15:8030", "IP:port string to connect to as server")
+
 	flag.Parse()
-	client, _ := rpc.Dial("tcp", *server)
+	client, _ := rpc.Dial("tcp", *flag.String("server", "54.196.153.167:8030", "IP:port string to connect to as server"))
 	defer client.Close()
 
 	//calls client and assigns the recieved world to initialworld
