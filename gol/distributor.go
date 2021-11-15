@@ -63,6 +63,8 @@ func makeCall(client rpc.Client, initialworld [][]byte, p Params) *stubs.Respons
 
 }
 
+var server_flag = flag.String("server", "34.234.85.28:8030", "IP:port string to connect to as server")
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 
@@ -79,9 +81,8 @@ func distributor(p Params, c distributorChannels) {
 	// TODO: Execute all turns of the Game of Life.
 
 	//client side boiler code copied from secretstrings
-
 	flag.Parse()
-	client, _ := rpc.Dial("tcp", *flag.String("server", "3.91.157.15:8030", "IP:port string to connect to as server"))
+	client, _ := rpc.Dial("tcp", *server_flag)
 	defer client.Close()
 
 	//calls client and assigns the recieved world to initialworld
