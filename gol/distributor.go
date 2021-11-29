@@ -63,7 +63,7 @@ func makeCall(client rpc.Client, initialworld [][]byte, p Params) *stubs.Respons
 
 }
 
-var server_flag = flag.String("server", "34.234.85.28:8030", "IP:port string to connect to as server")
+var server_flag = flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -94,6 +94,17 @@ func distributor(p Params, c distributorChannels) {
 	// TODO: Report the final state using FinalTurnCompleteEvent.
 
 	listofallivecells := getallalivecells(initialworld, p)
+
+	c.ioCommand <- ioOutput
+	outfilename := strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(turn)
+	c.ioFilename <- outfilename
+
+	for r := 0; r < p.ImageHeight; r++ {
+		for col := 0; col < p.ImageWidth; col++ {
+			c.ioOutput <- initialworld[col][r]
+		}
+	}
+	c.events <- ImageOutputComplete{turn, outfilename}
 
 	c.events <- FinalTurnComplete{ // Send a final turn complete event to the events channel
 		CompletedTurns: turn,
